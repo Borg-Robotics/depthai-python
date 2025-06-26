@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import time
 import sys
+import os
 try:
     import open3d as o3d
 except ImportError:
@@ -65,8 +66,7 @@ pointcloud.outputPointCloud.link(sync.inputs["pcl"])
 sync.out.link(xOut.input)
 xOut.setStreamName("out")
 
-
-
+CAPTURE_DIR = "/home/borg/borg_ros/captures"
 
 with dai.Device(pipeline) as device:
     isRunning = True
@@ -85,6 +85,8 @@ with dai.Device(pipeline) as device:
 
     first = True
     fpsCounter = FPSCounter()
+    os.makedirs(CAPTURE_DIR, exist_ok=True)  # Create folder if not exists
+
     while isRunning:
         inMessage = q.get()
         inColor = inMessage["rgb"]
@@ -94,11 +96,25 @@ with dai.Device(pipeline) as device:
         cvRGBFrame = cv2.cvtColor(cvColorFrame, cv2.COLOR_BGR2RGB)
         fps = fpsCounter.tick()
         # Display the FPS on the frame
-        cv2.putText(cvColorFrame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        # cv2.putText(cvColorFrame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.imshow("color", cvColorFrame)
         key = cv2.waitKey(1)
         if key == ord('q'):
             break
+        if key == ord('s'):
+            # Save RGB image
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            img_path = os.path.join(CAPTURE_DIR, f"rgb_{timestamp}.png")
+            cv2.imwrite(img_path, cvColorFrame)
+            # Save point cloud
+            if inPointCloud:
+                points = inPointCloud.getPoints().astype(np.float64)
+                pcd.points = o3d.utility.Vector3dVector(points)
+                colors = (cvRGBFrame.reshape(-1, 3) / 255.0).astype(np.float64)
+                pcd.colors = o3d.utility.Vector3dVector(colors)
+                pcd_path = os.path.join(CAPTURE_DIR, f"pointcloud_{timestamp}.ply")
+                o3d.io.write_point_cloud(pcd_path, pcd)
+                print(f"Saved: {img_path} and {pcd_path}")
         if inPointCloud:
             t_before = time.time()
             points = inPointCloud.getPoints().astype(np.float64)
