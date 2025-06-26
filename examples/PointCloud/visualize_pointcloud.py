@@ -41,7 +41,7 @@ xOut.input.setBlocking(False)
 
 camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 camRgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
-camRgb.setIspScale(1,3)
+camRgb.setIspScale(1,1)
 camRgb.setFps(FPS)
 
 monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
